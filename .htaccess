@@ -1,50 +1,77 @@
+# Deny access to critical system files
+# This rule prevents access to specific files such as wp-config.php, .htaccess, readme.html, and license.txt.
+<FilesMatch "^(wp-config\.php|\.htaccess|readme\.html|license\.txt)$">
+	Require all denied
+</FilesMatch>
 
+# Disable directory listing
+# Prevents users from viewing the contents of directories if an index file is missing.
+Options -Indexes
 
-<Limit PUT DELETE>
-	order deny,allow
-	deny from all
-</Limit>
+# Block access to the XML-RPC file
+# Prevents attackers from exploiting XML-RPC, which is often targeted for brute force and DDoS attacks.
+<FilesMatch "xmlrpc\.php$">
+    Require all denied
+</FilesMatch>
 
-# END LIMIT #############################################
-
-## Can be commented out if causes errors, see notes above.
-Options +FollowSymLinks
-
-# REDIRECT ###############################################
-
+# Limit requests to reduce DDoS or brute force attacks
+# Blocks suspicious POST requests made to wp-login.php using certain user agents (like bots or curl).
 <IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} POST
+    RewriteCond %{REQUEST_URI} .*/wp-login\.php.*
+    RewriteCond %{HTTP_USER_AGENT} ^.*(curl|wget|bot|spider).*$ [NC]
+    RewriteRule ^(.*)$ - [F,L]
+</IfModule>
 
-	# REDIRECT to no-www
+# Prevent execution of PHP files in unnecessary directories
+# Disables execution of PHP files to enhance security in specific folders.
+<FilesMatch "\.(php|php\.)$">
+    <If "-f %{REQUEST_FILENAME}">
+        Require all denied
+    </If>
+</FilesMatch>
+
+# Restrict the size of uploaded files
+# Limits the maximum file upload size to 10MB to prevent oversized file uploads.
+# UNCOMMENT to use #
+# LimitRequestBody 10485760
+
+# Add security-related HTTP headers
+# Protects against various types of attacks like XSS, clickjacking, and code injection.
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "no-referrer-when-downgrade"
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# END SECURITY ####################################################
+
+<Files robots.txt>
+	Allow from all
+</Files>
+
+<Files ads.txt>
+	Allow from all
+</Files>
+
+# Redirect all HTTP traffic to HTTPS
+# Ensures all users access the site over a secure connection.
+# UNCOMMENT to use #
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
+
+# REDIRECT to no-www
+<IfModule mod_rewrite.c>
 	RewriteEngine On
 	RewriteCond %{HTTP_HOST} ^www.(.+) [NC]
 	RewriteRule ^(.*) https://%1/$1 [R=301,NE,L]
 </IfModule>
-
-
-# SECURITY ####################################################
-<files ~ "^.*\.([Hh][Tt][Aa])">
-	order allow,deny
-	deny from all
-	satisfy all
-</files>
-
-# Deny access to wp-config.php file
-<files wp-config.php>
-	order allow,deny
-	deny from all
-</files>
-
-<FilesMatch "\.(txt|md|exe|sh|bak|inc|pot|po|mo|log|sql)$">
-	Order allow,deny
-	Deny from all
-</FilesMatch>
-<Files robots.txt>
-	Allow from all
-</Files>
-<Files ads.txt>
-	Allow from all
-</Files>
-# END SECURITY ####################################################
 
 # BEGIN WordPress
 # The directives (lines) between "BEGIN WordPress" and "END WordPress" are
