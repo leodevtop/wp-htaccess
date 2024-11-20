@@ -24,14 +24,6 @@ Options -Indexes
     RewriteRule ^(.*)$ - [F,L]
 </IfModule>
 
-# Prevent execution of PHP files in unnecessary directories
-# Disables execution of PHP files to enhance security in specific folders.
-<FilesMatch "\.(php|php\.)$">
-    <If "-f %{REQUEST_FILENAME}">
-        Require all denied
-    </If>
-</FilesMatch>
-
 # Restrict the size of uploaded files
 # Limits the maximum file upload size to 10MB to prevent oversized file uploads.
 # UNCOMMENT to use #
